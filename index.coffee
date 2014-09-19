@@ -1,4 +1,6 @@
 through2 = require 'through2'
+cheerio = require 'cheerio'
+_ = defaults: require 'lodash.defaults'
 
 # requires = ['html', 'generate']
 
@@ -14,30 +16,27 @@ module.exports = (options = { shortname: null }) ->
 
     processFile = (file, enc, done) ->
         if file.isPost
-            $ = file.$
+            # $ = file.$
 
             shortname = options.shortname
-            url = file.url # @TODO: throw error
-            title = file.title
-            identifier = file.id # @TODO: throw error
+            url = file.url || '' # @TODO: throw error
+            title = file.title || ''
+            identifier = file.id || '' # @TODO: throw error
 
             template = '
                 <div id="disqus_thread">
                 </div>
-                <a href="http://disqus.com" class="dsq-brlink">
-                    comments powered by
-                    <span class="logo-disqus">Disqus</span>
-                </a>
             '
 
+            # @TODO: create script using vm?
             script = "
-            <script>
-                disqus_shortname = #{options.shortname}
-                window.disqus_identifier = #{identifier}
-                window.disqus_title = #{title}
-                window.disqus_url = #{url}
-                window.disqus_category_id = #{options.category_id}
-                window.disqus_disable_mobile = #{options.disable_mobile}
+            <script type='text/javascript'>
+                window.disqus_shortname = '#{options.shortname}';
+                window.disqus_identifier = '#{identifier}';
+                window.disqus_title = '#{title}';
+                window.disqus_url = '#{url}';
+                /*window.disqus_category_id = '#{options.category_id}';*/
+                window.disqus_disable_mobile = #{options.disable_mobile};
 
                 var dsq = document.createElement('script');
                 dsq.type = 'text/javascript';
@@ -51,12 +50,12 @@ module.exports = (options = { shortname: null }) ->
 
 
             file.comments =
-                $(template)
+                (cheerio.load template).root()
                 .attr 'shortname', shortname
                 .attr 'url', url
                 .attr 'title', title
                 .attr 'identifier', identifier
-                .append $(script)
+                .append cheerio.load(script).root()
                 .html()
 
         done null, file
